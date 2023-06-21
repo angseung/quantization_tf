@@ -1,2 +1,3 @@
 tensorflow>=2.0.0
 matplotlib>=3.7.1
+tensorflow-model-optimization>=0.7.5
