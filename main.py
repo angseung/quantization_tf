@@ -4,7 +4,7 @@ from utils import inference
 
 
 input_tensor = tf.random.uniform((1, 224, 224, 3))
-model = tf.keras.applications.ResNet50()
+model = keras.applications.ResNet50()
 
 fp_output = model(input_tensor).numpy()
 
@@ -16,3 +16,4 @@ with open("tflite/test_model.tflite", "wb") as f:
     f.write(tflite_model_quant)
 
 pred_q = inference("tflite/test_model.tflite", input_tensor)
+inference(tflite_model_quant, input_tensor)
