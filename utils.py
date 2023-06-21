@@ -1,6 +1,6 @@
 import os
 import time
-from typing import Union
+from typing import Union, Tuple
 from pathlib import Path
 import numpy as np
 import tensorflow as tf
@@ -9,7 +9,11 @@ FILE = Path(__file__).resolve()
 ROOT = FILE.parent  # root directory
 
 
-def inference(tf_lite_model: Union[str, bytes], input_tensor: tf.Tensor) -> tf.Tensor:
+def inference(
+    tf_lite_model: Union[str, bytes],
+    input_tensor: tf.Tensor,
+    show_elapsed_time: bool = False,
+) -> tf.Tensor:
     if isinstance(tf_lite_model, str):
         tf_lite_model = tf.lite.Interpreter(
             model_path=os.path.join(ROOT, tf_lite_model)
@@ -27,12 +31,25 @@ def inference(tf_lite_model: Union[str, bytes], input_tensor: tf.Tensor) -> tf.T
     start_qint8 = time.time()
     tf_lite_model.invoke()
     latency_qint8 = time.time() - start_qint8
-    print(f"fp32 model: {latency_qint8: .4f}")
+
+    if show_elapsed_time:
+        print(f"fp32 model: {latency_qint8: .4f}")
 
     return tf_lite_model.get_tensor(output_index)
 
 
-def representative_dataset():
-    for _ in range(10):
-        data = np.random.rand(1, 224, 224, 3)  # Calibration Data
-        yield [data.astype(np.float32)]  # Return data with generator
+class RepresentativeDataset:
+    """
+    Calibration data loader class for test only.
+    """
+
+    def __init__(self, shape: Union[Tuple[int, int], int]):
+        if isinstance(shape, tuple):
+            self.shape = (1, *shape, 3)
+        elif isinstance(shape, int):
+            self.shape = (1, shape, shape, 3)
+
+    def representative_dataset(self):
+        for _ in range(10):
+            data = np.random.rand(*self.shape)  # Calibration Data
+            yield [data.astype(np.float32)]  # Return data with generator
