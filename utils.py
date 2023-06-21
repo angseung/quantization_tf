@@ -1,4 +1,3 @@
-import os
 import time
 from typing import Union, Tuple
 from pathlib import Path
@@ -16,7 +15,7 @@ def inference(
 ) -> tf.Tensor:
     if isinstance(tf_lite_model, str):
         tf_lite_model = tf.lite.Interpreter(
-            model_path=os.path.join(ROOT, tf_lite_model)
+            model_path=tf_lite_model
         )
     elif isinstance(tf_lite_model, bytes):
         tf_lite_model = tf.lite.Interpreter(model_content=tf_lite_model)
