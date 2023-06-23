@@ -14,9 +14,7 @@ def inference(
     show_elapsed_time: bool = False,
 ) -> tf.Tensor:
     if isinstance(tf_lite_model, str):
-        tf_lite_model = tf.lite.Interpreter(
-            model_path=tf_lite_model
-        )
+        tf_lite_model = tf.lite.Interpreter(model_path=tf_lite_model)
     elif isinstance(tf_lite_model, bytes):
         tf_lite_model = tf.lite.Interpreter(model_content=tf_lite_model)
 
@@ -32,7 +30,7 @@ def inference(
     latency_qint8 = time.time() - start_qint8
 
     if show_elapsed_time:
-        print(f"fp32 model: {latency_qint8: .4f}")
+        print(f"qint8 model: {latency_qint8: .4f}")
 
     return tf_lite_model.get_tensor(output_index)
 
