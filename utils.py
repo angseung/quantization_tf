@@ -40,9 +40,9 @@ class RepresentativeDataset:
     Calibration data loader class for test only.
     """
 
-    def __init__(self, shape: Union[Tuple[int, int], int]):
+    def __init__(self, shape: Union[Tuple[int, int, int, int], Tuple[int, int, int], int]):
         if isinstance(shape, tuple):
-            self.shape = (1, *shape, 3)
+            self.shape = shape
         elif isinstance(shape, int):
             self.shape = (1, shape, shape, 3)
 
