@@ -3,7 +3,8 @@ import time
 from pathlib import Path
 import tensorflow as tf
 from tensorflow import keras
-from utils import inference, RepresentativeDataset
+from utils.quantization_utils import RepresentativeDataset, cal_mse
+from utils.tflite_utils import inference
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parent  # root directory
@@ -11,7 +12,8 @@ target_dir = "tflite"
 
 input_shape = (1, 224, 224, 3)
 input_tensor = tf.random.uniform(input_shape)
-model = keras.applications.ResNet50()
+# model = keras.applications.ResNet50()
+model = keras.applications.DenseNet121()
 
 start_fp = time.time()
 fp_output = model(input_tensor).numpy()
@@ -34,3 +36,5 @@ with open(os.path.join(ROOT, target_dir, "test_model.tflite"), "wb") as f:
 pred_q = inference(
     os.path.join(ROOT, target_dir, "test_model.tflite"), input_tensor, True
 )
+
+mse = cal_mse(pred_q, fp_output)

@@ -1,8 +1,8 @@
 import time
-from typing import Union, Tuple
+from typing import Union
 from pathlib import Path
-import numpy as np
 import tensorflow as tf
+import numpy as np
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parent  # root directory
@@ -12,7 +12,7 @@ def inference(
     tf_lite_model: Union[str, bytes],
     input_tensor: tf.Tensor,
     show_elapsed_time: bool = False,
-) -> tf.Tensor:
+) -> np.ndarray:
     if isinstance(tf_lite_model, str):
         tf_lite_model = tf.lite.Interpreter(model_path=tf_lite_model)
     elif isinstance(tf_lite_model, bytes):
@@ -33,20 +33,3 @@ def inference(
         print(f"qint8 model: {latency_qint8: .4f}")
 
     return tf_lite_model.get_tensor(output_index)
-
-
-class RepresentativeDataset:
-    """
-    Calibration data loader class for test only.
-    """
-
-    def __init__(self, shape: Union[Tuple[int, int, int, int], Tuple[int, int, int], int]):
-        if isinstance(shape, tuple):
-            self.shape = shape
-        elif isinstance(shape, int):
-            self.shape = (1, shape, shape, 3)
-
-    def representative_dataset(self):
-        for _ in range(10):
-            data = np.random.rand(*self.shape)  # Calibration Data
-            yield [data.astype(np.float32)]  # Return data with generator
