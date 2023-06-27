@@ -42,5 +42,5 @@ pred_q = inference(
 mse = cal_mse(pred_q, fp_output)
 onnx_file = os.path.join(ROOT, "onnx", f"{model.name}.onnx")
 convert_tf2onnx(model_name, onnx_file, 13)
-onnx_pred = inference_onnx(onnx_file, input_tensor)
+onnx_pred = inference_onnx(onnx_file, input_tensor.numpy())
 mse_onnx = cal_mse(onnx_pred, fp_output)
