@@ -9,7 +9,9 @@ def cal_mse(
     pred = tf.convert_to_tensor(pred)
     if isinstance(target, np.ndarray):
         target = tf.convert_to_tensor(target)
-    mse_loss = tf.keras.losses.MeanSquaredError(reduction=tf.keras.losses.Reduction.NONE)
+    mse_loss = tf.keras.losses.MeanSquaredError(
+        reduction=tf.keras.losses.Reduction.NONE
+    )
 
     if norm:
         mse = mse_loss(target, pred) / mse_loss(target, tf.zeros_like(target))
