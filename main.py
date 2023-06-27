@@ -15,16 +15,16 @@ models = [
     # keras.applications.DenseNet121(),
     # keras.applications.DenseNet169(),
     # keras.applications.DenseNet201(),
-    # keras.applications.ResNet50(),
-    # keras.applications.ResNet50V2(),
-    # keras.applications.ResNet101(),
-    # keras.applications.ResNet152(),
-    # keras.applications.MobileNet(),
-    # keras.applications.MobileNetV2(),
-    # keras.applications.MobileNetV3Small(),
-    # keras.applications.MobileNetV3Large(),
-    # keras.applications.EfficientNetB0(),
-    # keras.applications.EfficientNetB1(),
+    keras.applications.ResNet50(),
+    keras.applications.ResNet50V2(),
+    keras.applications.ResNet101(),
+    keras.applications.ResNet152(),
+    keras.applications.MobileNet(),
+    keras.applications.MobileNetV2(),
+    keras.applications.MobileNetV3Small(),
+    keras.applications.MobileNetV3Large(),
+    keras.applications.EfficientNetB0(),
+    keras.applications.EfficientNetB1(),
     keras.applications.EfficientNetB2(),
     keras.applications.EfficientNetB3(),
     keras.applications.EfficientNetB4(),
@@ -65,7 +65,10 @@ for model in models:
     onnx_quant_file = os.path.join(ROOT, "onnx", f"{model.name}_quant.onnx")
     with open(os.path.join(ROOT, target_dir, "test_model.tflite"), "wb") as f:
         f.write(tflite_model_quant)
-        tflite2onnx.convert(os.path.join(ROOT, target_dir, "test_model.tflite"), onnx_quant_file)
+
+    tflite2onnx.convert(
+        os.path.join(ROOT, target_dir, "test_model.tflite"), onnx_quant_file
+    )
 
     pred_q = inference(
         os.path.join(ROOT, target_dir, "test_model.tflite"), input_tensor, True
@@ -78,4 +81,6 @@ for model in models:
     mse_onnx = cal_mse(onnx_pred, fp_output)
 
     with open("./log.txt", "a") as f:
-        f.write(f"[{model.name}] mse fp-quant: {mse[0]: .6f}, mse fp-onnx: {mse_onnx[0]: .6f}\n")
+        f.write(
+            f"[{model.name}] mse fp-quant: {mse[0]: .6f}, mse fp-onnx: {mse_onnx[0]: .6f}\n"
+        )
