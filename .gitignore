@@ -161,3 +161,6 @@ cython_debug/
 onnx
 output
 .idea
+tflite
+weights
+tf3.9
