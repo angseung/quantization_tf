@@ -14,7 +14,7 @@ def inference_onnx(
     :return: inference result of onnx model
     """
     ort_model = onnxruntime.InferenceSession(onnx_path)
-    result = ort_model.run(None, {"input": input_data})[0]
+    result = ort_model.run(None, {"input_1": input_data})[0]
 
     return result
 
