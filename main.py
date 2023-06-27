@@ -13,34 +13,66 @@ target_dir = "tflite"
 
 input_shape = (1, 224, 224, 3)
 input_tensor = tf.random.uniform(input_shape)
-model = keras.applications.DenseNet121()
-model_name = os.path.join(ROOT, "weights", f"{model.name}")
-model.save(model_name)
+models = [
+    # keras.applications.DenseNet121(),
+    # keras.applications.DenseNet169(),
+    keras.applications.DenseNet201(),
+    keras.applications.ResNet50(),
+    keras.applications.ResNet50V2(),
+    keras.applications.ResNet101(),
+    keras.applications.ResNet152(),
+    keras.applications.MobileNet(),
+    keras.applications.MobileNetV2(),
+    keras.applications.MobileNetV3Small(),
+    keras.applications.MobileNetV3Large(),
+    keras.applications.EfficientNetB0(),
+    keras.applications.EfficientNetB1(),
+    keras.applications.EfficientNetB2(),
+    keras.applications.EfficientNetB3(),
+    keras.applications.EfficientNetB4(),
+    keras.applications.EfficientNetB5(),
+    keras.applications.EfficientNetB6(),
+    keras.applications.EfficientNetB7(),
+    keras.applications.EfficientNetV2B0(),
+    keras.applications.EfficientNetV2B1(),
+    keras.applications.EfficientNetV2B2(),
+    keras.applications.EfficientNetV2S(),
+    keras.applications.EfficientNetV2M(),
+    keras.applications.EfficientNetV2L(),
+]
 
-start_fp = time.time()
-fp_output = model(input_tensor).numpy()
-latency_fp = time.time() - start_fp
-print(f"fp32 model: {latency_fp: .4f}")
+for model in models:
+    model_name = os.path.join(ROOT, "weights", f"{model.name}")
+    model.save(model_name)
 
-converter = tf.lite.TFLiteConverter.from_keras_model(model)
-converter.optimizations = [tf.lite.Optimize.DEFAULT]  # quantization flag
-converter.representative_dataset = RepresentativeDataset(
-    shape=input_shape[2]
-).representative_dataset
-tflite_model_quant = converter.convert()
+    start_fp = time.time()
+    fp_output = model(input_tensor).numpy()
+    latency_fp = time.time() - start_fp
+    print(f"fp32 model: {latency_fp: .4f}")
 
-if not os.path.isdir(os.path.join(ROOT, target_dir)):
-    os.makedirs(os.path.join(ROOT, target_dir))
+    converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    converter.optimizations = [tf.lite.Optimize.DEFAULT]  # quantization flag
+    converter.representative_dataset = RepresentativeDataset(
+        shape=input_shape[2]
+    ).representative_dataset
+    tflite_model_quant = converter.convert()
 
-with open(os.path.join(ROOT, target_dir, "test_model.tflite"), "wb") as f:
-    f.write(tflite_model_quant)
+    if not os.path.isdir(os.path.join(ROOT, target_dir)):
+        os.makedirs(os.path.join(ROOT, target_dir))
 
-pred_q = inference(
-    os.path.join(ROOT, target_dir, "test_model.tflite"), input_tensor, True
-)
+    with open(os.path.join(ROOT, target_dir, "test_model.tflite"), "wb") as f:
+        f.write(tflite_model_quant)
 
-mse = cal_mse(pred_q, fp_output)
-onnx_file = os.path.join(ROOT, "onnx", f"{model.name}.onnx")
-convert_tf2onnx(model_name, onnx_file, 13)
-onnx_pred = inference_onnx(onnx_file, input_tensor.numpy())
-mse_onnx = cal_mse(onnx_pred, fp_output)
+    pred_q = inference(
+        os.path.join(ROOT, target_dir, "test_model.tflite"), input_tensor, True
+    )
+
+    mse = cal_mse(pred_q, fp_output)
+    onnx_file = os.path.join(ROOT, "onnx", f"{model.name}.onnx")
+    convert_tf2onnx(model_name, onnx_file, 13)
+    input_name = [n.name for n in model.inputs][0]
+    onnx_pred = inference_onnx(onnx_file, input_name, input_tensor.numpy())
+    mse_onnx = cal_mse(onnx_pred, fp_output)
+
+    with open("./log.txt", "a") as f:
+        f.write(f"[{model.name}] mse fp-quant: {mse[0]: .6f}, mse fp-onnx: {mse_onnx[0]: .6f}\n")
