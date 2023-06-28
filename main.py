@@ -16,30 +16,36 @@ models = [
     # keras.applications.DenseNet169(),
     # keras.applications.DenseNet201(),
     keras.applications.ResNet50(),
-    keras.applications.ResNet50V2(),
-    keras.applications.ResNet101(),
-    keras.applications.ResNet152(),
-    keras.applications.MobileNet(),
-    keras.applications.MobileNetV2(),
-    keras.applications.MobileNetV3Small(),
-    keras.applications.MobileNetV3Large(),
-    keras.applications.EfficientNetB0(),
-    keras.applications.EfficientNetB1(),
-    keras.applications.EfficientNetB2(),
-    keras.applications.EfficientNetB3(),
-    keras.applications.EfficientNetB4(),
-    keras.applications.EfficientNetB5(),
-    keras.applications.EfficientNetB6(),
-    keras.applications.EfficientNetB7(),
-    keras.applications.EfficientNetV2B0(),
-    keras.applications.EfficientNetV2B1(),
-    keras.applications.EfficientNetV2B2(),
-    keras.applications.EfficientNetV2S(),
-    keras.applications.EfficientNetV2M(),
-    keras.applications.EfficientNetV2L(),
+    # keras.applications.ResNet50V2(),
+    # keras.applications.ResNet101(),
+    # keras.applications.ResNet152(),
+    # keras.applications.MobileNet(),
+    # keras.applications.MobileNetV2(),
+    # keras.applications.MobileNetV3Small(),
+    # keras.applications.MobileNetV3Large(),
+    # keras.applications.EfficientNetB0(),
+    # keras.applications.EfficientNetB1(),
+    # keras.applications.EfficientNetB2(),
+    # keras.applications.EfficientNetB3(),
+    # keras.applications.EfficientNetB4(),
+    # keras.applications.EfficientNetB5(),
+    # keras.applications.EfficientNetB6(),
+    # keras.applications.EfficientNetB7(),
+    # keras.applications.EfficientNetV2B0(),
+    # keras.applications.EfficientNetV2B1(),
+    # keras.applications.EfficientNetV2B2(),
+    # keras.applications.EfficientNetV2S(),
+    # keras.applications.EfficientNetV2M(),
+    # keras.applications.EfficientNetV2L(),
 ]
 
 for model in models:
+    model.compile(
+        optimizer="adam",
+        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+        metrics=["accuracy"],
+    )
+
     input_shape = (1, *model.input_shape[1:])
     input_tensor = tf.random.uniform(input_shape)
     model_name = os.path.join(ROOT, "weights", f"{model.name}")
@@ -66,9 +72,11 @@ for model in models:
     with open(os.path.join(ROOT, target_dir, "test_model.tflite"), "wb") as f:
         f.write(tflite_model_quant)
 
-    tflite2onnx.convert(
-        os.path.join(ROOT, target_dir, "test_model.tflite"), onnx_quant_file
-    )
+    # TODO: Modify quantization config from per-channel to per-tensor.
+    #  TFLite2onnx does not support per-channel method yet.
+    # tflite2onnx.convert(
+    #     os.path.join(ROOT, target_dir, "test_model.tflite"), onnx_quant_file
+    # )
 
     pred_q = inference(
         os.path.join(ROOT, target_dir, "test_model.tflite"), input_tensor, True
