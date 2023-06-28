@@ -103,30 +103,33 @@ tf_lite_model.get_input_details()[0]
 
 | Model | Quantization Support | FP32 model ONNX Export Support | Quantized model ONNX Export Support | ONNX opset |
 | --- | --- | --- | --- | --- |
-| ResNet50 | PTQ, QAT | Y |  | 13 |
-| ResNet50V2 | PTQ, QAT | Y |  | 13 |
-| ResNet101 | PTQ, QAT | Y |  | 13 |
-| ResNet152 | PTQ, QAT | Y |  | 13 |
-| DenseNet121 | PTQ, QAT | Y |  | 13 |
-| DenseNet169 | PTQ, QAT | Y |  | 13 |
-| DenseNet201 | PTQ, QAT | Y |  | 13 |
-| EfficientNetB0 | PTQ, QAT | Y |  | 13 |
-| EfficientNetB1 | PTQ, QAT | Y |  | 13 |
-| EfficientNetB2 | PTQ, QAT | Y |  | 13 |
-| EfficientNetB3 | PTQ, QAT | Y |  | 13 |
-| EfficientNetB4 | PTQ, QAT | Y |  | 13 |
-| EfficientNetB5 | PTQ, QAT | Y |  | 13 |
-| EfficientNetB6 | PTQ, QAT | Y |  | 13 |
-| EfficientNetB7 | PTQ, QAT | Y |  | 13 |
-| EfficientNetV2B0 | PTQ, QAT | Y |  | 13 |
-| EfficientNetV2B1 | PTQ, QAT | Y |  | 13 |
-| EfficientNetV2B2 | PTQ, QAT | Y |  | 13 |
-| EfficientNetV2S | PTQ, QAT | Y |  | 13 |
-| EfficientNetV2M | PTQ, QAT | Y |  | 13 |
-| EfficientNetV2L | PTQ, QAT | Y |  | 13 |
-| MobileNet | PTQ, QAT | Y |  | 13 |
-| MobileNetV2 | PTQ, QAT | Y |  | 13 |
-| MobileNetV3 | PTQ, QAT | N |  | N/A |
+| ResNet50 | PTQ, QAT | Y | N | 13 |
+| ResNet50V2 | PTQ, QAT | Y | N | 13 |
+| ResNet101 | PTQ, QAT | Y | N | 13 |
+| ResNet152 | PTQ, QAT | Y | N | 13 |
+| DenseNet121 | PTQ, QAT | Y | N | 13 |
+| DenseNet169 | PTQ, QAT | Y | N | 13 |
+| DenseNet201 | PTQ, QAT | Y | N | 13 |
+| EfficientNetB0 | PTQ, QAT | Y | N | 13 |
+| EfficientNetB1 | PTQ, QAT | Y | N | 13 |
+| EfficientNetB2 | PTQ, QAT | Y | N | 13 |
+| EfficientNetB3 | PTQ, QAT | Y | N | 13 |
+| EfficientNetB4 | PTQ, QAT | Y | N | 13 |
+| EfficientNetB5 | PTQ, QAT | Y | N | 13 |
+| EfficientNetB6 | PTQ, QAT | Y | N | 13 |
+| EfficientNetB7 | PTQ, QAT | Y | N | 13 |
+| EfficientNetV2B0 | PTQ, QAT | Y | N | 13 |
+| EfficientNetV2B1 | PTQ, QAT | Y | N | 13 |
+| EfficientNetV2B2 | PTQ, QAT | Y | N | 13 |
+| EfficientNetV2S | PTQ, QAT | Y | N | 13 |
+| EfficientNetV2M | PTQ, QAT | Y | N | 13 |
+| EfficientNetV2L | PTQ, QAT | Y | N | 13 |
+| MobileNet | PTQ, QAT | Y | N | 13 |
+| MobileNetV2 | PTQ, QAT | Y | N | 13 |
+| MobileNetV3S | N/A | Y | N/A | N/A |
+| MobileNetV3L | N/A | Y | N/A | N/A |
+- MobileNetV3: input_size error in tf2onnx (expected (1, 224, 224, 3), but got (1, 1, 1, 3))
+- EfficientNet계열: requires tensorflow ≤ 2.9.3에서만 ONNX Export 가능
 
 # Pruning
 
@@ -204,6 +207,104 @@ interpreter.invoke()  # forward
 
 pred = interpreter.get_tensor(output_index)  # get inference result
 ```
+
+# Wrapper Class
+
+```python
+class TFModelQuantizer:
+    def __init__(
+        self,
+        model: Functional,
+        dynamic: bool,
+        input_shape: Optional[Tuple[int, int, int]],
+        fully_quant: Optional[bool] = False,
+    ):
+        self._init_converter(model, dynamic, input_shape, fully_quant)
+
+    def _init_converter(
+        self,
+        model: Functional,
+        dynamic: bool,
+        input_shape: Optional[Tuple[int, int, int]],
+        fully_quant: Optional[bool] = False,
+    ):
+        self.converter = tf.lite.TFLiteConverter.from_keras_model(model)
+        self.converter.optimizations = [tf.lite.Optimize.DEFAULT]
+
+        input_shape_from_model = model.input_shape
+
+        # model has no top
+        if None in input_shape_from_model[1:]:
+            self.converter.input_shape = (None, *input_shape[1:])
+
+        # model has top
+        else:
+            self.converter.input_shape = input_shape_from_model
+
+        # Integer only quantization where IO is also int
+        if fully_quant:
+            self.converter.inference_input_type = tf.int8
+            self.converter.inference_output_type = tf.int8
+
+        if not dynamic:
+            self.converter.representative_dataset = RepresentativeDataset(
+                shape=self.converter.input_shape[2]
+            ).representative_dataset
+
+        self.quantized_model = self.converter.convert()
+
+    def inference(self, input_tensor: tf.Tensor, show_latency: bool) -> np.ndarray:
+        return inference_with_tflite(
+            self.quantized_model,
+            input_tensor=input_tensor,
+            show_elapsed_time=show_latency,
+        )
+
+    def save(self, path: str):
+        with open(path, "wb") as f:
+            f.write(self.quantized_model)
+
+# Usage
+model = keras.applications.ResNet50()
+input_shape = (1, *model.input_shape[1:])
+quantized_model = TFModelQuantizer(
+        model, dynamic=False, input_shape=input_shape[1:], fully_quant=False
+    )
+pred_q = quantized_model.inference(input_tensor, True)
+quantized_model.save(os.path.join(ROOT, target_dir, f"quant_{model.name}.tflite"))
+```
+
+# Latency Benchmarks
+
+| Model | FP32 Latency (s) | Quant Latency (s) | Ratio |
+| --- | --- | --- | --- |
+| ResNet50 | 0.314497 | 0.064987 | 0.206638 |
+| ResNet50V2 | 0.26157 | 0.069004 | 0.263807 |
+| ResNet101 | 0.445634 | 0.124176 | 0.27865 |
+| ResNet152 | 1.045938 | 0.180206 | 0.172291 |
+| DenseNet121 | 0.222457 | 0.052469 | 0.235861 |
+| DenseNet169 | 0.399349 | 0.063428 | 0.158828 |
+| DenseNet201 | 0.735438 | 0.076999 | 0.104698 |
+| EfficientNetB0 | 0.201541 | 1.444292 | 7.166244 |
+| EfficientNetB1 | 0.233323 | 2.562888 | 10.98429 |
+| EfficientNetB2 | 0.323979 | 3.626248 | 11.19285 |
+| EfficientNetB3 | 0.480443 | 6.741603 | 14.03206 |
+| EfficientNetB4 | 0.802941 | 16.58146 | 20.65091 |
+| EfficientNetB5 | 1.313606 | 38.06942 | 28.98085 |
+| EfficientNetB6 | 1.644098 | 70.11892 | 42.64887 |
+| EfficientNetB7 | 2.609175 | 137.9669 | 52.87758 |
+| EfficientNetV2B0 | 0.301169 | 2.857428 | 9.487789 |
+| EfficientNetV2B1 | 0.410881 | 4.505161 | 10.96464 |
+| EfficientNetV2B2 | 0.472283 | 6.518381 | 13.80185 |
+| EfficientNetV2S | 1.109034 | 31.32271 | 28.24323 |
+| EfficientNetV2M | 2.161369 | 93.17476 | 43.10914 |
+| EfficientNetV2L | 4.672688 | 210.4929 | 45.0475 |
+| MobileNet | 0.145611 | 2.070502 | 14.21941 |
+| MobileNetV2 | 0.144042 | 0.009042 | 0.062773 |
+| MobileNetV3S | N/A | N/A | N/A |
+| MobileNetV3L | N/A | N/A | N/A |
+- PTQ 이후 추론 시간이 증가하는 모델은 모두 Separable Convolution 구조를 사용하는 모델임
+    - Separable Conv를 사용하는 모델은 “Framework에서 양자화” 대상에서 제외하는 것이 좋을 것으로 판단됨
 
 # References
 
