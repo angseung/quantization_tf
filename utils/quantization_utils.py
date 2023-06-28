@@ -51,6 +51,15 @@ class TFModelQuantizer:
         input_shape: Optional[Tuple[int, int, int]],
         fully_quant: Optional[bool] = False,
     ):
+        self._init_converter(model, dynamic, input_shape, fully_quant)
+
+    def _init_converter(
+        self,
+        model: Functional,
+        dynamic: bool,
+        input_shape: Optional[Tuple[int, int, int]],
+        fully_quant: Optional[bool] = False,
+    ):
         self.converter = tf.lite.TFLiteConverter.from_keras_model(model)
         self.converter.optimizations = [tf.lite.Optimize.DEFAULT]
 
@@ -76,11 +85,12 @@ class TFModelQuantizer:
 
         self.quantized_model = self.converter.convert()
 
-    def inference(self, input_tensor: tf.Tensor, show_latency: bool) -> np.ndarray:
+    def inference(self, input_tensor: tf.Tensor, show_latency: bool, return_latency: bool) -> np.ndarray:
         return inference_with_tflite(
             self.quantized_model,
             input_tensor=input_tensor,
             show_elapsed_time=show_latency,
+            return_latency=return_latency,
         )
 
     def save(self, path: str):

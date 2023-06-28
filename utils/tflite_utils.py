@@ -1,5 +1,5 @@
 import time
-from typing import Union
+from typing import Union, Optional, Tuple
 from pathlib import Path
 import tensorflow as tf
 import numpy as np
@@ -12,7 +12,8 @@ def inference(
     tf_lite_model: Union[str, bytes],
     input_tensor: tf.Tensor,
     show_elapsed_time: bool = False,
-) -> np.ndarray:
+    return_latency: Optional[bool] = False,
+) -> Union[np.ndarray, Tuple[np.ndarray, float]]:
     if isinstance(tf_lite_model, str):
         tf_lite_model = tf.lite.Interpreter(model_path=tf_lite_model)
     elif isinstance(tf_lite_model, bytes):
@@ -32,4 +33,6 @@ def inference(
     if show_elapsed_time:
         print(f"qint8 model: {latency_qint8: .4f}")
 
-    return tf_lite_model.get_tensor(output_index)
+    return tf_lite_model.get_tensor(
+        output_index
+    ), latency_qint8 if return_latency else tf_lite_model.get_tensor(output_index)

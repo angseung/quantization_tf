@@ -20,8 +20,8 @@ models = [
     keras.applications.ResNet152(),
     keras.applications.MobileNet(),
     keras.applications.MobileNetV2(),
-    keras.applications.MobileNetV3Small(),
-    keras.applications.MobileNetV3Large(),
+    keras.applications.MobileNetV3Small(include_top=False),
+    keras.applications.MobileNetV3Large(include_top=False),
     keras.applications.EfficientNetB0(),
     keras.applications.EfficientNetB1(),
     keras.applications.EfficientNetB2(),
@@ -45,7 +45,8 @@ for model in models:
         metrics=["accuracy"],
     )
 
-    input_shape = (1, *model.input_shape[1:])
+    # input_shape = (1, *model.input_shape[1:])
+    input_shape = (1, 224, 224, 3)
     input_tensor = tf.random.uniform(input_shape)
     model_path = os.path.join(ROOT, "weights", f"{model.name}")
     model.save(model_path)
@@ -58,7 +59,7 @@ for model in models:
     quantized_model = TFModelQuantizer(
         model, dynamic=False, input_shape=input_shape[1:], fully_quant=False
     )
-    pred_q = quantized_model.inference(input_tensor, True)
+    pred_q, latency_q = quantized_model.inference(input_tensor, True, True)
 
     if not os.path.isdir(os.path.join(ROOT, target_dir)):
         os.makedirs(os.path.join(ROOT, target_dir))
@@ -82,5 +83,6 @@ for model in models:
 
     with open("./log.txt", "a") as f:
         f.write(
-            f"[{model.name}] mse fp-quant: {mse[0]: .6f}, mse fp-onnx: {mse_onnx[0]: .6f}\n"
+            f"[{model.name}] | fp latency: {latency_fp: .6f} | quant latency: {latency_q: .6f} | "
+            f"mse fp-quant: {mse[0]: .6f} | mse fp-onnx: {mse_onnx[0]: .6f}\n"
         )
