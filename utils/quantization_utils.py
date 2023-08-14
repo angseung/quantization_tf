@@ -85,7 +85,9 @@ class TFModelQuantizer:
 
         self.quantized_model = self.converter.convert()
 
-    def inference(self, input_tensor: tf.Tensor, show_latency: bool, return_latency: bool) -> np.ndarray:
+    def inference(
+        self, input_tensor: tf.Tensor, show_latency: bool, return_latency: bool
+    ) -> np.ndarray:
         return inference_with_tflite(
             self.quantized_model,
             input_tensor=input_tensor,
