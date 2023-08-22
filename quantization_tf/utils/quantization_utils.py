@@ -2,7 +2,7 @@ from typing import Union, Tuple, Optional
 import tensorflow as tf
 from keras.engine.functional import Functional
 import numpy as np
-from utils.tflite_utils import inference as inference_with_tflite
+from quantization_tf.utils.tflite_utils import inference as inference_with_tflite
 
 
 def cal_mse(
@@ -85,7 +85,9 @@ class TFModelQuantizer:
 
         self.quantized_model = self.converter.convert()
 
-    def inference(self, input_tensor: tf.Tensor, show_latency: bool, return_latency: bool) -> np.ndarray:
+    def inference(
+        self, input_tensor: tf.Tensor, show_latency: bool, return_latency: bool
+    ) -> np.ndarray:
         return inference_with_tflite(
             self.quantized_model,
             input_tensor=input_tensor,

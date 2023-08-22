@@ -3,13 +3,12 @@ import time
 from pathlib import Path
 import tensorflow as tf
 from tensorflow import keras
-import tflite2onnx
-from utils.quantization_utils import cal_mse, TFModelQuantizer
-from utils.onnx_utils import convert_tf2onnx, inference_onnx
+from quantization_tf.utils.quantization_utils import cal_mse, TFModelQuantizer
+from quantization_tf.utils.onnx_utils import convert_tf2onnx, inference_onnx
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parent  # root directory
-target_dir = "tflite"
+target_dir = "../../tflite"
 models = [
     keras.applications.DenseNet121(),
     keras.applications.DenseNet169(),
@@ -48,7 +47,7 @@ for model in models:
     # input_shape = (1, *model.input_shape[1:])
     input_shape = (1, 224, 224, 3)
     input_tensor = tf.random.uniform(input_shape)
-    model_path = os.path.join(ROOT, "weights", f"{model.name}")
+    model_path = os.path.join(ROOT, "../../weights", f"{model.name}")
     model.save(model_path)
 
     start_fp = time.time()
@@ -66,8 +65,8 @@ for model in models:
 
     quantized_model.save(os.path.join(ROOT, target_dir, f"quant_{model.name}.tflite"))
 
-    onnx_file = os.path.join(ROOT, "onnx", f"{model.name}.onnx")
-    onnx_quant_file = os.path.join(ROOT, "onnx", f"{model.name}_quant.onnx")
+    onnx_file = os.path.join(ROOT, "../../onnx", f"{model.name}.onnx")
+    onnx_quant_file = os.path.join(ROOT, "../../onnx", f"{model.name}_quant.onnx")
 
     # TODO: Modify quantization config from per-channel to per-tensor.
     #  TFLite2onnx does not support per-channel method yet.
@@ -81,7 +80,7 @@ for model in models:
     onnx_pred = inference_onnx(onnx_file, input_name, input_tensor.numpy())
     mse_onnx = cal_mse(onnx_pred, fp_output)
 
-    with open("./log.txt", "a") as f:
+    with open("../../log.txt", "a") as f:
         f.write(
             f"[{model.name}] | fp latency: {latency_fp: .6f} | quant latency: {latency_q: .6f} | "
             f"mse fp-quant: {mse[0]: .6f} | mse fp-onnx: {mse_onnx[0]: .6f}\n"

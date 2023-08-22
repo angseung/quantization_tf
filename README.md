@@ -93,8 +93,8 @@ tf_lite_model.get_input_details()[0]
  'dtype': numpy.float32,
  'quantization': (0.0, 0),
  'quantization_parameters': {'scales': array([], dtype=float32),
-  'zero_points': array([], dtype=int32),
-  'quantized_dimension': 0},
+ 'zero_points': array([], dtype=int32),`
+ 'quantized_dimension': 0},
  'sparsity_parameters': {}
 }
 ```
@@ -208,7 +208,7 @@ interpreter.invoke()  # forward
 pred = interpreter.get_tensor(output_index)  # get inference result
 ```
 
-# Wrapper Class
+# Wrapper Class for Model Quantization
 
 ```python
 class TFModelQuantizer:
@@ -300,7 +300,7 @@ quantized_model.save(os.path.join(ROOT, target_dir, f"quant_{model.name}.tflite"
 | EfficientNetV2M | 2.161369 | 93.17476 | 43.10914 |
 | EfficientNetV2L | 4.672688 | 210.4929 | 45.0475 |
 | MobileNet | 0.145611 | 2.070502 | 14.21941 |
-| MobileNetV2 | 0.144042 | 0.009042 | 0.062773 |
+| MobileNetV2 | N/A | N/A | N/A |
 | MobileNetV3S | N/A | N/A | N/A |
 | MobileNetV3L | N/A | N/A | N/A |
 - PTQ 이후 추론 시간이 증가하는 모델은 모두 Separable Convolution 구조를 사용하는 모델임
