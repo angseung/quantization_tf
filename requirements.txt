@@ -1,4 +1,5 @@
-tensorflow
+tensorflow==2.10.1
+protobuf==3.19.6
 matplotlib
 tensorflow-model-optimization
 tf2onnx

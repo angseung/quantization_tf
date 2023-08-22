@@ -2,7 +2,7 @@ from typing import Union, Tuple, Optional
 import tensorflow as tf
 from keras.engine.functional import Functional
 import numpy as np
-from utils.tflite_utils import inference as inference_with_tflite
+from quantization_tf.utils.tflite_utils import inference as inference_with_tflite
 
 
 def cal_mse(
