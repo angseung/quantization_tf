@@ -64,6 +64,10 @@ class TFModelQuantizer:
         input_shape: Optional[Tuple[int, int, int]],
         fully_quant: Optional[bool] = False,
     ):
+        # concrete_func = model.signatures[
+        #     tf.saved_model.DEFAULT_SERVING_SIGNATURE_DEF_KEY
+        # ]
+        # concrete_func.inputs[0].set_shape([None, *input_shape])
         self.converter = tf.lite.TFLiteConverter.from_keras_model(model)
         self.converter.optimizations = [tf.lite.Optimize.DEFAULT]
 

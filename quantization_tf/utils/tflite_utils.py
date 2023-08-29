@@ -18,10 +18,10 @@ def inference(
         tf_lite_model = tf.lite.Interpreter(model_path=tf_lite_model)
     elif isinstance(tf_lite_model, bytes):
         tf_lite_model = tf.lite.Interpreter(model_content=tf_lite_model)
-
-    tf_lite_model.allocate_tensors()
     input_index = tf_lite_model.get_input_details()[0]["index"]
     output_index = tf_lite_model.get_output_details()[0]["index"]
+    tf_lite_model.resize_tensor_input(input_index, input_tensor.shape, strict=True)
+    tf_lite_model.allocate_tensors()
 
     tf_lite_model.set_tensor(input_index, input_tensor)
 
