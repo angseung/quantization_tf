@@ -33,7 +33,11 @@ class RepresentativeDataset:
         self, shape: Union[Tuple[int, int, int, int], Tuple[int, int, int], int]
     ):
         if isinstance(shape, tuple):
-            self.shape = shape
+            if len(shape) == 3:
+                self.shape = (1, *shape)
+            elif len(shape) == 4:
+                self.shape = shape
+
         elif isinstance(shape, int):
             self.shape = (1, shape, shape, 3)
 
@@ -63,15 +67,7 @@ class TFModelQuantizer:
         self.converter = tf.lite.TFLiteConverter.from_keras_model(model)
         self.converter.optimizations = [tf.lite.Optimize.DEFAULT]
 
-        input_shape_from_model = model.input_shape
-
-        # model has no top
-        if None in input_shape_from_model[1:]:
-            self.converter.input_shape = (None, *input_shape[1:])
-
-        # model has top
-        else:
-            self.converter.input_shape = input_shape_from_model
+        self.converter.input_shape = input_shape
 
         # Integer only quantization where IO is also int
         if fully_quant:
@@ -80,7 +76,7 @@ class TFModelQuantizer:
 
         if not dynamic:
             self.converter.representative_dataset = RepresentativeDataset(
-                shape=self.converter.input_shape[2]
+                shape=self.converter.input_shape
             ).representative_dataset
 
         self.quantized_model = self.converter.convert()
