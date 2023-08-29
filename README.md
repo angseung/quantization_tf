@@ -1,4 +1,4 @@
-# Optimizing Models with Tensorflow
+# Model Optimization with Tensorflow
 
 # Dynamic Quantization
 
@@ -126,9 +126,8 @@ tf_lite_model.get_input_details()[0]
 | EfficientNetV2L | PTQ, QAT | Y | N | 13 |
 | MobileNet | PTQ, QAT | Y | N | 13 |
 | MobileNetV2 | PTQ, QAT | Y | N | 13 |
-| MobileNetV3S | N/A | Y | N/A | N/A |
-| MobileNetV3L | N/A | Y | N/A | N/A |
-- MobileNetV3: input_size error in tf2onnx (expected (1, 224, 224, 3), but got (1, 1, 1, 3))
+| MobileNetV3S | PTQ, QAT | Y | N | 13 |
+| MobileNetV3L | PTQ, QAT | Y | N | 13 |
 - EfficientNet계열: requires tensorflow ≤ 2.9.3에서만 ONNX Export 가능
 
 # Pruning
@@ -231,15 +230,7 @@ class TFModelQuantizer:
         self.converter = tf.lite.TFLiteConverter.from_keras_model(model)
         self.converter.optimizations = [tf.lite.Optimize.DEFAULT]
 
-        input_shape_from_model = model.input_shape
-
-        # model has no top
-        if None in input_shape_from_model[1:]:
-            self.converter.input_shape = (None, *input_shape[1:])
-
-        # model has top
-        else:
-            self.converter.input_shape = input_shape_from_model
+        self.converter.input_shape = input_shape
 
         # Integer only quantization where IO is also int
         if fully_quant:
@@ -248,30 +239,24 @@ class TFModelQuantizer:
 
         if not dynamic:
             self.converter.representative_dataset = RepresentativeDataset(
-                shape=self.converter.input_shape[2]
+                shape=self.converter.input_shape
             ).representative_dataset
 
         self.quantized_model = self.converter.convert()
 
-    def inference(self, input_tensor: tf.Tensor, show_latency: bool) -> np.ndarray:
+    def inference(
+        self, input_tensor: tf.Tensor, show_latency: bool, return_latency: bool
+    ) -> np.ndarray:
         return inference_with_tflite(
             self.quantized_model,
             input_tensor=input_tensor,
             show_elapsed_time=show_latency,
+            return_latency=return_latency,
         )
 
     def save(self, path: str):
         with open(path, "wb") as f:
             f.write(self.quantized_model)
-
-# Usage
-model = keras.applications.ResNet50()
-input_shape = (1, *model.input_shape[1:])
-quantized_model = TFModelQuantizer(
-        model, dynamic=False, input_shape=input_shape[1:], fully_quant=False
-    )
-pred_q = quantized_model.inference(input_tensor, True)
-quantized_model.save(os.path.join(ROOT, target_dir, f"quant_{model.name}.tflite"))
 ```
 
 # Latency Benchmarks
@@ -300,9 +285,9 @@ quantized_model.save(os.path.join(ROOT, target_dir, f"quant_{model.name}.tflite"
 | EfficientNetV2M | 2.161369 | 93.17476 | 43.10914 |
 | EfficientNetV2L | 4.672688 | 210.4929 | 45.0475 |
 | MobileNet | 0.145611 | 2.070502 | 14.21941 |
-| MobileNetV2 | N/A | N/A | N/A |
-| MobileNetV3S | N/A | N/A | N/A |
-| MobileNetV3L | N/A | N/A | N/A |
+| MobileNetV2 | 0.156607 | 1.145000 | 7.311295 |
+| MobileNetV3S | 0.078379 | 0.218860 | 2.79233 |
+| MobileNetV3L | 0.122135 | 0.853089 | 6.984804 |
 - PTQ 이후 추론 시간이 증가하는 모델은 모두 Separable Convolution 구조를 사용하는 모델임
     - Separable Conv를 사용하는 모델은 “Framework에서 양자화” 대상에서 제외하는 것이 좋을 것으로 판단됨
 
@@ -329,5 +314,3 @@ quantized_model.save(os.path.join(ROOT, target_dir, f"quant_{model.name}.tflite"
 [Pruning for on-device inference w/ XNNPACK  |  TensorFlow Model Optimization](https://www.tensorflow.org/model_optimization/guide/pruning/pruning_for_on_device_inference)
 
 - TFLite inference
-
-[TensorFlow Lite inference](https://www.tensorflow.org/lite/guide/inference)
